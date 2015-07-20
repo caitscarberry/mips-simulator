@@ -86,7 +86,7 @@ function runStep() {
 };
 
 function resume(interval) {
-	runInterval = window.setInterval(step, interval);
+	runInterval = window.setInterval(runStep, interval);
 };
 
 function pause() {
