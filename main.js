@@ -15,8 +15,7 @@ function assemble() {
 	instructionsList = document.getElementById("instructions");
 	instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
 	codeDiv = document.getElementById("code");
-	codeDiv.children[processor.text[processor.programCounter].lineNum].style["backgroundColor"]="hsl(120,27%,90%)";
-
+	
 };
 
 function showInstructions() {
@@ -74,15 +73,12 @@ function runStep() {
 	instructionsList = document.getElementById("instructions");
 	codeDiv = document.getElementById("code");
 	instructionsList.children[processor.programCounter].style["backgroundColor"]="white";
-	codeDiv.children[processor.text[processor.programCounter].lineNum].style["backgroundColor"]="white";
 	processor.runInstr();
 
 	if(!processor.running) return;
 	
 	updateRegisters();
-	codeDiv.children[processor.text[processor.programCounter].lineNum].style["backgroundColor"]="hsl(120,27%,90%)";
 	instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
-	codeDiv.children[processor.text[processor.programCounter].lineNum].scrollIntoViewIfNeeded();
 };
 
 function resume(interval) {
