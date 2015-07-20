@@ -1,0 +1,126 @@
+<html>
+  <head>
+    <title>MIPS emulator</title>
+    <style>
+    	ul, #container, #registersContainer, #lineNumbers, #instructions {
+    		display:inline-block;
+    		vertical-align: top;
+    		border:1px solid gray;
+    	}
+
+    	#io {
+    		border: 1px solid black;
+    		min-height:200px;
+    		width:600px;
+    	}
+    	#io div {
+    		white-space: pre;
+    	}
+
+    	#instructions {
+    		height:300px;
+    		overflow-y: scroll;
+    		overflow-x:hidden;
+    		list-style: none;
+    		margin:0px;
+    		padding-right:10px;
+    		min-width:200px;
+    	}
+
+    	#cursor {
+    		height:10px;
+    		border: 1px solid hsl(0,0%,10%);
+    		width:0px;
+    		display: inline-block;
+    	}
+
+    	#code {
+    		position: relative;
+    		left:0px;
+    		min-width:600px;
+    		min-height:300px;
+    		float:right;
+    		outline: none;
+    		margin-left: 10px;
+    		margin-right:5px;
+    	}
+
+    	#container {
+    		min-width:650px;
+    		height:300px;
+    		overflow-y: scroll;
+		}
+
+		#lineNumbers, #code {
+    		font-family: monospace;
+    	}
+
+		#registersContainer {
+			height:300px;
+			overflow-y:scroll;
+			width: -webkit-min-content;
+			width: -moz-min-content;
+		}
+		#registers {
+			margin-left: 20px;
+		}
+
+		#lineNumbers {
+			text-align: right;
+		}
+    </style>
+    <script src="processor.js"></script>
+    <script src="interpreter.js"></script>
+    <script src="system.js"></script>
+  </head>
+  <body>
+  	<div id = "container">
+	  	<div id = "lineNumbers"></div>
+	    <div id = "code" contenteditable="true" spellchecK="false"></div>
+	</div>
+    <ul id="instructions">
+    </ul>
+    <div id="registersContainer">
+    	<table id="registers"><tbody>
+	    	<tr><td>0</td><td>$zero</td><td>0</td></tr>
+	    	<tr><td>1</td><td>$at</td><td>0</td></tr>
+	    	<tr><td>2</td><td>$v0</td><td>0</td></tr>
+	    	<tr><td>3</td><td>$v1</td><td>0</td></tr>
+	    	<tr><td>4</td><td>$a0</td><td>0</td></tr>
+	    	<tr><td>5</td><td>$a1</td><td>0</td></tr>
+	    	<tr><td>6</td><td>$a2</td><td>0</td></tr>
+	    	<tr><td>7</td><td>$a3</td><td>0</td></tr>
+	    	<tr><td>8</td><td>$t0</td><td>0</td></tr>
+	    	<tr><td>9</td><td>$t1</td><td>0</td></tr>
+	    	<tr><td>10</td><td>$t2</td><td>0</td></tr>
+	    	<tr><td>11</td><td>$t3</td><td>0</td></tr>
+	    	<tr><td>12</td><td>$t4</td><td>0</td></tr>
+	    	<tr><td>13</td><td>$t5</td><td>0</td></tr>
+	    	<tr><td>14</td><td>$t6</td><td>0</td></tr>
+	    	<tr><td>15</td><td>$t7</td><td>0</td></tr>
+	    	<tr><td>16</td><td>$s0</td><td>0</td></tr>
+	    	<tr><td>17</td><td>$s1</td><td>0</td></tr>
+	    	<tr><td>18</td><td>$s2</td><td>0</td></tr>
+	    	<tr><td>19</td><td>$s3</td><td>0</td></tr>
+	    	<tr><td>20</td><td>$s4</td><td>0</td></tr>
+	    	<tr><td>21</td><td>$s5</td><td>0</td></tr>
+	    	<tr><td>22</td><td>$s6</td><td>0</td></tr>
+	    	<tr><td>23</td><td>$s7</td><td>0</td></tr>
+	    	<tr><td>24</td><td>$t8</td><td>0</td></tr>
+	    	<tr><td>25</td><td>$t9</td><td>0</td></tr>
+	    	<tr><td>26</td><td>$k0</td><td>0</td></tr>
+	    	<tr><td>27</td><td>$k1</td><td>0</td></tr>
+	    	<tr><td>28</td><td>$gp</td><td>0</td></tr>
+	    	<tr><td>29</td><td>$sp</td><td>0</td></tr>
+	    	<tr><td>30</td><td>$s8</td><td>0</td></tr>
+	    	<tr><td>31</td><td>$ra</td><td>0</td></tr>
+    	</tbody></table>
+	</div><br>
+	<input type="button" onclick="assemble();" value = "Assemble"> <input type="button" onclick = "resume(200);" value = "Run"/> <input type="button" onclick="pause();" value = "Pause"> <input type="button" onclick="runStep();" value = "Step">
+	<h2>I/O</h2>
+	<div id="io">
+		<div></div>
+	</div>
+   
+  </body> <script src="main.js"></script>
+</HTML>
