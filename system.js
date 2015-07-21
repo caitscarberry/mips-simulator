@@ -48,6 +48,7 @@ var system = {
 			console.log("String read");
 			processor.loadString(processor.getRegister("$a0"),input+String.fromCharCode(10));
 		}
+		system.reading = "none";
 		io = document.getElementById("io");
 		io.appendChild(document.createElement("div"));
 		system.inputFocus = false;
@@ -62,23 +63,23 @@ var system = {
 			if (evt.keyCode==13)
 			{
 				document.getElementById("cursor").remove();
-				system.giveInput(inputLine.innerText);
+				system.giveInput(inputLine.innerHTML);
 			}
 			//backspace
 			else if (evt.keyCode==8){
 				
-				if (inputLine.innerText.length>0) {
+				if (inputLine.innerHTML.length>0) {
 					document.getElementById("cursor").remove();
-					inputLine.innerHTML = inputLine.innerText.substring(0,system.cursorPosition-1) + 
+					inputLine.innerHTML = inputLine.innerHTML.substring(0,system.cursorPosition-1) + 
 						"<div id = 'cursor'></div>" +
-						inputLine.innerText.substring(system.cursorPosition+1);
+						inputLine.innerHTML.substring(system.cursorPosition+1);
 					system.cursorPosition--;
 				}
 			}
 			//space
 			else if (evt.keyCode==32){
 				document.getElementById("cursor").remove();
-				inputLine.innerHTML = inputLine.innerText + " " + "<div id = 'cursor'></div>";
+				inputLine.innerHTML = inputLine.innerHTML + " " + "<div id = 'cursor'></div>";
 				system.cursorPosition++;
 			}
 			//alphanumeric character
@@ -86,13 +87,13 @@ var system = {
 				document.getElementById("cursor").remove();
 				code = evt.keyCode;
 				if (!evt.shiftKey&&code<=90&&code>=65) code = code + 32;
-				inputLine.innerHTML = inputLine.innerText + String.fromCharCode(code) + "<div id = 'cursor'></div>";
+				inputLine.innerHTML = inputLine.innerHTML + String.fromCharCode(code) + "<div id = 'cursor'></div>";
 				system.cursorPosition++;
 			}
 			//minus sign
 			else if (evt.keyCode==189) {
 				document.getElementById("cursor").remove();
-				inputLine.innerHTML = inputLine.innerText + String.fromCharCode(45) + "<div id = 'cursor'></div>";
+				inputLine.innerHTML = inputLine.innerHTML + String.fromCharCode(45) + "<div id = 'cursor'></div>";
 				system.cursorPosition++;
 			}
 			console.log(evt);
