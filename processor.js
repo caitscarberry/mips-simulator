@@ -45,11 +45,6 @@ var processor = {
 
 	programCounter: 0,
 
-	isValidWriteRegister: function(reg){
-		//STUB
-		return true;
-	},
-
 	setRegister: function(reg,num) {
 		reg = reg.substring(1);
 		if(reg.match(/\D/)) {
@@ -165,7 +160,7 @@ var processor = {
 		},
 		//syscall 4 prints the null-terminated string pointed to by the address in $a0
 		4: function() {
-			system.printString(processor.retrieveString(processor.getRegister("$a0")));
+			system.printString(unescape(processor.retrieveString(processor.getRegister("$a0"))));
 		},
 		//syscall 5 reads an int into $v0
 		5: function() {
@@ -225,18 +220,25 @@ var processor = {
 		console.log(data);
 		console.log("mem pointer: "+this.memoryPointer.toString());
 		switch(data.type) {
+
 			case "ascii":
-				processor.loadString(processor.memoryPointer,data.data);
-				processor.memoryPointer+=data.data.length;
+				processor.loadString(processor.memoryPointer,
+					unescape(data.data[0].substring(1, data.data[0].length-1)));
+				processor.memoryPointer+=data.data[0].length-2;
 				break;
 
 			case "asciiz":
-				processor.loadString(processor.memoryPointer,data.data);
-				processor.memoryPointer+=data.data.length+1;
+				str = data.data[0].substring(1, data.data[0].length-1);
+				str = str.replace(/\\n/g, String.fromCharCode(10));
+				processor.loadString(processor.memoryPointer,str);
+				processor.memoryPointer+=str.length+1;
 				break;
 
 			case "byte":
-				
+				data.data.forEach(function(b) {
+					processor.memoryView.setUint8(processor.memoryPointer,parseInt(b));
+					processor.memoryPointer++;
+				});
 				break;
 
 			case "halfword":
@@ -244,11 +246,15 @@ var processor = {
 				break;
 
 			case "word":
-				
+				console.log("storing words");
+				console.log(data.data);
+				data.data.forEach(function(w) {
+					processor.memoryView.setUint32(processor.memoryPointer,parseInt(w));
+					processor.memoryPointer+=4;
+				});
 				break;
 
 			case "space":
-				console.log("allocating "+data.data+" bytes");
 				processor.memoryPointer+=parseInt(data.data);
 				break;
 		}
@@ -269,35 +275,35 @@ var processor = {
 			b = processor.memoryView.getUint8(offset+i);
 			str = str + String.fromCharCode(b);
 		}
-		return str;
+		return unescape(str);
 	},
 
 	addressToOffset: function(addressStr) {
-		if (addressStr.match(/\d\d*$/m)&&!addressStr.match(/\+/)) {
+		if (addressStr.match(/^\d+$/)&&!addressStr.match(/\+/)) {
 			console.log("const");
 			return parseInt(addressStr);
 		}
-		if (addressStr.match(/^\(\$\w\w*\)$/m)) {
+		if (addressStr.match(/^\(\$\w+\)$/)) {
 			console.log("($register)");
 			return processor.getRegister(addressStr.substring(1,addressStr.length-1));
 		}
-		if (addressStr.match(/^\d\d*\(\$\w\w*\)$/m)) {
+		if (addressStr.match(/^\d\d*\(\$\w+\)$/)) {
 			console.log("const($reg)");
 			num = parseInt(addressStr.split("(")[0]);
 			reg = addressStr.split("(")[1].split(")")[0];
 			return num + processor.getRegister(reg);
 		}
-		if (addressStr.match(/^\w\w*$/m)) {
+		if (addressStr.match(/^\w+$/)) {
 			console.log("label");
 			return processor.dataLabels[addressStr];
 		}
-		if (addressStr.match(/^\w\w*\s*\+\s*\d\d*$/m)) {
+		if (addressStr.match(/^\w+\s*\+\s*\d+$/m)) {
 			console.log("label + const");
 			label = addressStr.split(/\s*\+\s*/)[0];
 			num = parseInt(addressStr.split(/\+\s*/)[1]);
 			return processor.dataLabels[label]+num;
 		}
-		if (addressStr.match(/^\w\w*\s*\+\s*\d\d*\(\$\w\w*\)/m)) {
+		if (addressStr.match(/^\w+\s*\+\s*\d+\(\$\w+\)/m)) {
 			console.log("label + const($reg)");
 			label = addressStr.split(/\s*\+\s*/)[0];
 			num = parseInt(addressStr.split(/\+\s*/)[1].split("(")[0]);

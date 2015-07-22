@@ -1,95 +1,172 @@
-var program = {
 
-	section: "text",
+var parser = {
+	state: "text",
+	position: 0,
+	text: "",
+	consumed: "",
+	tokens: [],
 
-	stripComments: function(code) {
-		return code.replace(/\#.*?\n/g,"\n");
-	},
 
-	stripWhiteSpace: function(code) {
-		return code.replace(/\t/g," ");	
-	},
-
-	splitLines: function(code) {
-		return code.split("\n");
-	},
-
-	readCode: function(lines) {
-		for(ll in lines){
-			line = lines[ll].trim();
-			if(line.length>0) {
-				this.readLine(line,ll);
+	readCode: function(code) {
+		parser.text = code;
+		parser.tokens = [];
+		parser.getAllTokens();
+		ind = 0;
+		while (ind<parser.tokens.length) {
+			token = parser.tokens[ind];
+			console.log("reading token");
+			if(token.type=="instr") {
+				parser.readInstructionToken(token);
 			}
+			if(token.type=="syscall") {
+				processor.text.push( {
+					op: "syscall",
+					lineNum: token.line,
+					params: [],
+				});
+			}
+			if(token.type=="arg") {
+				processor.text[processor.text.length-1].params.push(token.val);
+			}
+			if(token.type=="instrLabel") {
+				processor.instrLabels[token.val] = processor.text.length;
+			}
+			if(token.type=="dataLabel") {
+				processor.dataLabels[token.val] = processor.memoryPointer;
+			}
+			if(token.type=="dataType") {
+				dataObj = {
+					type : token.val,
+					data: [],
+				}
+				ind++;
+				token = parser.tokens[ind];
+				while (ind<parser.tokens.length && token.type!="newline") {
+					console.log("adding data");
+					console.log(token);
+					dataObj.data.push(token.val);
+					ind++;
+					token = parser.tokens[ind];
+					
+				}
+				ind--;
+				console.log("data object:");
+				console.log(dataObj);
+				processor.loadData(dataObj);
+			}
+			ind++;
 		}
 	},
 
-	readLine: function(line, lineNum) {
-		if(line.match(/^\s*\.text\s*$/m)) {
-			this.section = "text";
-			return;
-		}
-		if(line.match(/^\s*\.data\s*$/m)) {
-			this.section = "data";
-			return;
-		}
-		if(this.section=="text") {
-			//if the line is a label
-			if(line.match(/^\w*:$/gm)) {
-				label = line.substring(0,line.length-1);
-				processor.instrLabels[label]=processor.text.length;
-				console.log("label "+label+" added for instruction " + processor.instrLabels[label].toString());
-				return;
-			}
-			else {
-				instr = this.readInstruction(line, lineNum);
-			}
-		}
-		else {
-			if(line.match(/^\w\w*:.*/gm)) {
-				processor.labelMemory(line.split(":")[0].trim());	
-			}
-			if(line.match(/\.\w/)) {
-				this.readDataDeclaration(line);
-			}
-		}
-
-	},
-
-	readInstruction: function(line,lineNum) {
-		console.log(line);
+	readInstructionToken: function(token) {
 		processor.text.push( {
-			op: line.substring(0,line.indexOf(" ")>-1?line.indexOf(" "):line.length).trim(),
-			params: line.indexOf(" ")>-1?line.substring(line.indexOf(" ")+1).replace(/\s/g,"").split(","):[],
-			lineNum: lineNum,
+			op: token.val,
+			lineNum: token.line,
+			params: [],
 		});
 	},
 
-	readDataDeclaration: function (line, al) {
-			dataObj = {};
-			dataObj.type = line.substring(line.indexOf(".")+1,line.indexOf(" ",line.indexOf(".")+1));
-			data =  line.split(line.match(/\.\w\w*\s\s*/)[0])[1];
-			console.log("raw: "+data);
-			switch(dataObj.type) {
-				case "asciiz":
-				case "ascii":
-					console.log("string data: "+data);
-					data = data.trim();
-					data = data.substring(1,data.length-1);
-					data = data.replace(/\\n/g,String.fromCharCode(10));
-					break;
-				case "byte":
-				case "halfword":
-				case "word":
-					data = replace(/\s/g,"");
-					data = data.split(",");
-					break;
-				case "space":
-					data = parseInt(data);
-					break;
-			}
-			dataObj.data = data;
+	modes: {
+		text: [
+			{regex: /(\n+)/, token:['newline']},
+		    {regex: /\s*#(.*)\n/, token: ['comment']},
+		    {regex: /\s*([a-z]{1,4})[\t ]+(\$[\w]{1,4})(?:,[\t ]*('?[-\$\w\(\)]+'?))?(?:,[\t ]*('?[-\$\w\(\)]+'?))?\s*/,
+		     token: ['instr','arg','arg','arg'],},
+		    {regex: /(j(?:al)?r?)[\t ]+(.+)[\t ]*/,
+		    	token: ['instr','arg']},
 
-			processor.loadData(dataObj);
+		    {regex: /\s*(b[a-z]{0,5})(?:[\t ]+([\$\w\(\)]+))(?:[ \t]*,[\t ]+([\S]+))?(?:[\t ]*,[\t ]+([\S]+))?\s*/,
+		    	token: ['instr','arg','arg','arg']},
+		    {regex: /(syscall)\s*/,
+		     token: ['syscall']},
+		    {regex: /(\.data)\s*/,
+		     token: ['dataStart'],
+		     next: 'data',},
+		    {regex: /\n?[\t ]*(\w+)\:\s*/,
+		     token: ['instrLabel']},
+		    {regex: /\s*\.(text)[\t ]*\n/,
+			 token: ['textStart'],
+			 next: 'text'},
+			  {regex: /\.(globl)[\t ]+(.+)[\t ]*/,
+			  token: ['globalDirective','label']},
+		],
+
+		data: [
+			{regex: /\s*#(.*)\n/, token: ['comment']},
+			{regex: /[\t ]*(\w+)\:[\t ]*/,
+		     token: ['dataLabel']},
+			{regex: /[\t ]*\.(text)[\t ]*/,
+			 token: ['textStart'],
+			 next: 'text'},
+			 {regex: /\s*\.(globl)[\t ]+(.+)[\t ]*/,
+			  token: ['globalDirective','label']},
+			 {regex: /[\t ]*\.(align)[\t ]+(\d+)[\t ]*/,
+			  token: ['align','number']},
+			 {regex: /\.(asciiz?)[\t ]+(.+)[\t ]*/,
+			  token: ['dataType','str']},
+			 {regex: /\.(word|byte|half)[\t ]+/,
+			  token: ['dataType']},
+			 {regex: /\.(space)[\t ]+(\d+)[\t ]*/,
+			  token: ['dataType','space']},
+			 {regex: /(\n+)/, token: ['newline']},
+			 {regex: /(\d+)\b,?/, token: ['number']}
+			 ],
+
+		dataList: [
+
+		]
+
+	},
+
+	getNextTokens: function() {
+		tokens = [];
+		result = null;
+		index = 0;
+		while (result==null&&index<parser.modes[parser.state].length) {
+			tokenMatch = parser.modes[parser.state][index];
+			//only match the beginning of the string
+			result = (new RegExp("^[\\t ]*"+tokenMatch.regex.toString().substring(
+				1, tokenMatch.regex.toString().length-1))).exec(
+				parser.text.substring(parser.position));
+			index++;
+		};
+		console.log("\nregex result: ")
+		console.log(result);
+		if(result!=null) {
+			console.log("match found: "+tokenMatch.regex.toString());
+			result.forEach(function(val,ind) {
+				if(ind==0||val==undefined) return;
+				token = {};
+				token["type"] = tokenMatch.token[ind-1];
+				val!=undefined? token["val"] = val : token["val"]=null;
+				tokens.push(token);
+			});
+			tokens.forEach( function(token) {
+				if(parser.consumed.length==0||parser.consumed.match(/\n/g)==null) {
+					token["line"] = 0;
+				}
+				else {
+					token["line"]=parser.consumed.match(/\n/g).length;
+				}
+			});
+			parser.position = (parser.consumed = parser.consumed + result[0]).length;
+			
+			if(tokenMatch.next) {parser.state=tokenMatch.next;}
+			console.log("\nnew tokens:");
+			console.log(tokens);
+			return tokens;
 		}
-};
+		return [];
+	},
 
+	getAllTokens: function() {
+		allTokens = [];
+		newTokens = parser.getNextTokens();
+		while(newTokens.length>0) {
+			newTokens.forEach(function(token) {allTokens.push(token)});
+			newTokens = parser.getNextTokens();
+		}
+		parser.tokens = allTokens;
+	}
+
+}

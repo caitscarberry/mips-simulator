@@ -2,21 +2,16 @@ var runInterval;
 
 function assemble() {
 	processor.text = [];
-	program.data = [];
-	program.labels = {};
+	parser.consumed = "";
+	parser.position = 0;
 	processor.reset();
 	processor.programCounter = 0;
 	processor.running = true;
 
 	textarea = document.getElementById("code");
-	console.log(textarea);
 	programCode = "";
 	(textarea.innerHTML.length>0)? programCode = textarea.innerText : programCode = textarea.value;
-	programCode = program.stripWhiteSpace(programCode);
-	programCode = program.splitLines(program.stripComments(programCode));
-	console.log(programCode)
-	program.readCode(programCode);
-	processor.loadProgram(program);
+	parser.readCode(programCode);
 	showInstructions();
 	addLineNumbers();
 	instructionsList = document.getElementById("instructions");
