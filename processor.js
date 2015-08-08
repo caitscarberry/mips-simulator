@@ -10,6 +10,10 @@ var processor = {
 
 	registers: new DataView(new ArrayBuffer(32*4)),
 
+	//used to store results of multiplication
+	//and division
+	highAndLow: new DataView(new ArrayBuffer(2*4)),
+
 	registerNames: {
 		"v0":2,
 		"v1":3,
@@ -35,7 +39,7 @@ var processor = {
 		"s5":21,
 		"s6":22,
 		"s7":23,
-		"s8":30,
+		"fp":30,
 		"k0":26,
 		"k1":27,
 		"gp":28,
@@ -46,7 +50,9 @@ var processor = {
 	programCounter: 0,
 };
 
-processor.setRegister = function(reg,num) {
+processor.setRegister = function(reg, num, signed) {
+	//by default, set the value signed
+	setSignedOrUnsigned = (signed==undefined|signed)? "setInt" : "setUint";
 	reg = reg.substring(1);
 	if(reg.match(/\D/)) {
 		reg = processor.registerNames[reg];
@@ -55,12 +61,15 @@ processor.setRegister = function(reg,num) {
 		reg = parseInt(reg);
 	}
 
-	processor.registers.setUint32(reg*4,num);
+	processor.registers[setSignedOrUnsigned+"32"](reg*4,num);
 };
 
-processor.getRegister = function(reg, numBytes) {
+processor.getRegister = function(reg, numBytes, signed) {
+	//by default, get the value signed
+	getSignedOrUnsigned = (signed==undefined|signed)? "getInt" : "getUint";
+
 	//by default, get the whole word
-	numBytes = numBytes|4;
+	if(!numBytes) numBytes = 4;
 
 	//remove the dollar sign
 	reg = reg.substring(1);
@@ -70,37 +79,120 @@ processor.getRegister = function(reg, numBytes) {
 	else {
 		reg = parseInt(reg);
 	}
-
-	switch(numBytes) {
-		case 1:
-			return processor.registers.getUint8(reg*4);
-		case 2:
-			return processor.registers.getUint16(reg*4);
-		case 4:
-			return processor.registers.getUint32(reg*4);
-	}
+	return processor.registers[getSignedOrUnsigned+(8*numBytes)](reg*4);
 };
 
 processor.operations =  {
 
 	//arithmetic
 	abs: function(dest, src) {
-		//STUB
+		sourceValue = processor.getRegister(src,4);
+		processor.setRegister(dest,Math.abs(sourceValue));
 	},
 	add: function(dest, src1, src2) {
-		processor.setRegister(dest,processor.getRegister(src1)+processor.secondSourceIntValue(src2));
+		sourceValue1 = processor.getRegister(src1);
+		sourceValue2 = processor.secondSourceIntValue(src2);
+		sum = sourceValue1 + sourceValue2;
+		//check for 32-bit two's complement overflow
+		console.log("sum: "+sum);
+		if(sum>Math.pow(2,31)-1) {
+			console.log("addition overflow");
+			processor.running = false;
+		}
+		else {
+			processor.setRegister(dest,sum);
+		}
 	},
 	addu: function(dest, src1, src2) {
-		processor.operations.add(dest, src1, src2);
+		sourceValue1 = processor.getRegister(src1);
+		sourceValue2 = processor.secondSourceIntValue(src2);
+		sum = sourceValue1 + sourceValue2;
+		//ignores overflow
+		//sets unsigned
+		processor.setRegister(dest,sum,false);
 	},
 	sub: function(dest, src1, src2) {
-		processor.setRegister(dest,processor.getRegister(src1)-processor.secondSourceIntValue(src2));
+		sourceValue1 = processor.getRegister(src1);
+		sourceValue2 = processor.secondSourceIntValue(src2);
+		difference = sourceValue1 - sourceValue2;
+		//check for 32-bit two's complement overflow
+		if(difference>Math.pow(2,31)-1) {
+			processor.running = false;
+		}
+		else {
+			processor.setRegister(dest,difference);
+		}
+	},
+	subu: function(dest, src1, src2) {
+		sourceValue1 = processor.getRegister(src1);
+		sourceValue2 = processor.secondSourceIntValue(src2);
+		difference = sourceValue1 - sourceValue2;
+		//ignores overflow
+		//sets unsigned
+		processor.setRegister(dest,difference,false);
 	},
 	addi: function(dest, src, num) {
-		processor.setRegister(dest,processor.getRegister(src)+parseInt(num));
+		sum = processor.getRegister(src) + parseInt(num);
+		//check for overflow
+		if(sum>Math.pow(2,31)-1) {
+			processor.running = false;
+		}
+		else {
+			processor.setRegister(dest, sum);
+		}
+	},
+	addiu: function(dest, src, num) {
+		//ignores overflow
+		//sets unsigned
+		processor.setRegister(dest,processor.getRegister(src) +
+			parseInt(num), false);
 	},
 	mul: function(dest, src1, src2) {
-		processor.setRegister(dest,processor.getRegister(src1)*processor.secondSourceIntValue(src2));
+		if(src2==undefined) {
+			processor.operations.mult(dest,src1);
+		}
+		else {
+		processor.setRegister(dest,processor.getRegister(src1) *
+			processor.secondSourceIntValue(src2));
+		}
+	},
+	mult: function(src1, src2) {
+		sourceValue1 = processor.getRegister(src1);
+		sourceValue2 = processor.secondSourceIntValue(src2);
+		product = sourceValue2 * sourceValue1;
+		highWord = Math.floor(product/(Math.pow(2,31)));
+		lowWord = product%Math.pow(2,31);
+		processor.highAndLow.setInt32(0,highWord);
+		processor.highAndLow.setInt32(4,lowWord);
+	},
+	multu: function(src1, src2) {
+		sourceValue1 = processor.getRegister(src1,4,false);
+		sourceValue2 = processor.getRegister(src2,4,false);
+		product = sourceValue2 * sourceValue1;
+		highWord = Math.floor(product/(Math.pow(2,31)));
+		lowWord = product%Math.pow(2,31);
+		processor.highAndLow.setInt32(0,highWord);
+		processor.highAndLow.setInt32(4,lowWord);
+	},
+	div: function(src1, src2) {
+		sourceValue1 = processor.getRegister(src1);
+		sourceValue2 = processor.secondSourceIntValue(src2);
+		quotient = Math.floor(sourceValue1 / sourceValue2);
+		//quotient is stored in hi
+		processor.highAndLow.setInt32(0,quotient);
+		//remainder is stored in lo
+		processor.highAndLow.setInt32(4, sourceValue1%sourceValue2);
+	},
+	divu: function(src1, src2) {
+		sourceValue1 = processor.getRegister(src1,4,false);
+		sourceValue2 = processor.getRegister(src2,4,false);
+		console.log("sourceValue1: "+sourceValue1);
+		console.log("sourceValue2: "+sourceValue2);
+		quotient = Math.floor(sourceValue1 / sourceValue2);
+		//quotient is stored in hi
+		processor.highAndLow.setUint32(0,quotient);
+		//remainder is stored in lo
+		processor.highAndLow.setUint32(4, sourceValue1%sourceValue2);
 	},
 
 	//load
@@ -124,7 +216,12 @@ processor.operations =  {
 	move: function(dest,src) {
 		processor.setRegister(dest,processor.getRegister(src)); 
 	},
-
+	mfhi: function(dest) {
+		processor.setRegister(dest,processor.highAndLow.getInt32(0));
+	},
+	mflo: function(dest) {
+		processor.setRegister(dest,processor.highAndLow.getInt32(4));
+	},
 
 	//jump
 	j: function(label) {
@@ -180,13 +277,13 @@ processor.operations =  {
 		//return if the address is not aligned
 		if(address%2) return;
 		address = processor.addressToOffset(address);
-		processor.memoryView.setUint8(address, processor.getRegister(src1,2));
+		processor.memoryView.setUint16(address, processor.getRegister(src1,2));
 	},
 	sw: function(src1, address) {
 		//return if the address is not aligned
 		if(address%4) return;
 		address = processor.addressToOffset(address);
-		processor.memoryView.setUint8(address, processor.getRegister(src1,4));
+		processor.memoryView.setUint32(address, processor.getRegister(src1,4));
 	},
 	swl: function(src1, address) {
 		address = processor.addressToOffset(address);
