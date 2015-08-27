@@ -254,8 +254,46 @@ processor.operations =  {
 			processor.programCounter = processor.instrLabels[label]-1;
 		}
 	},
+	bgez: function(src, label) {
+		if(processor.getRegister(src)>=0) {
+			processor.programCounter = processor.instrLabels[label]-1;
+		}
+	},
 	bgt: function(src1, src2, label) {
 		if(processor.getRegister(src1)>processor.secondSourceIntValue(src2)) {
+			processor.programCounter = processor.instrLabels[label]-1;
+		}
+	},
+	bgtz: function(src, label){
+		if(processor.getRegister(src)>0) {
+			processor.programCounter = processor.instrLabels[label]-1;
+		}
+	},
+	blez: function(src, label){
+		if(processor.getRegister(src)<=0) {
+			processor.programCounter = processor.instrLabels[label]-1;
+		}
+	},
+	bltz: function(src, label) {
+		if(processor.getRegister(src)<0) {
+			processor.programCounter = processor.instrLabels[label]-1;
+		}
+	},
+	bltzal: function(src, label) {
+		if(processor.getRegister(src)<0) {
+			processor.setRegister("$ra",processor.programCounter+1);
+			processor.programCounter = processor.instrLabels[label]-1;
+		}
+	},
+	bgtzal: function(src, label) {
+		if(processor.getRegister(src)>0) {
+			processor.setRegister("$ra",processor.programCounter+1);
+			processor.programCounter = processor.instrLabels[label]-1;
+		}
+	},
+	bgezal: function(src, label) {
+		if(processor.getRegister(src)>=0) {
+			processor.setRegister("$ra",processor.programCounter+1);
 			processor.programCounter = processor.instrLabels[label]-1;
 		}
 	},
