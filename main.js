@@ -8,12 +8,14 @@ function assemble() {
 
 	textarea = document.getElementById("code");
 	programCode = "";
-	(textarea.innerHTML.length>0)? programCode = textarea.innerText : programCode = textarea.value;
+	programCode = (textarea.innerHTML.length>0)? textarea.innerText : textarea.value;
 	parser.readCode(programCode);
 	showInstructions();
 	addLineNumbers();
+	updateRegisters();
 	instructionsList = document.getElementById("instructions");
-	instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
+	if (instructionsList.children.length>0)
+		instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
 };
 
 function showInstructions() {
@@ -51,13 +53,15 @@ function runStep() {
 	if(!processor.running) return;
 	
 	instructionsList = document.getElementById("instructions");
-	instructionsList.children[processor.programCounter].style["backgroundColor"]="white";
+	if (instructionsList.children.length>0)
+		instructionsList.children[processor.programCounter].style["backgroundColor"]="white";
 	processor.runInstr();
 	updateRegisters();
 
 	if(!processor.running) return;
-	
-	instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
+
+	if (instructionsList.children.length>0)
+		instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
 
 };
 

@@ -96,8 +96,8 @@ processor.operations =  {
 		//check for 32-bit two's complement overflow
 		console.log("sum: "+sum);
 		if(sum>Math.pow(2,31)-1) {
-			console.log("addition overflow");
-			processor.running = false;
+			system.error("Arithmetic overflow",
+				processor.text[processor.programCounter].lineNum);
 		}
 		else {
 			processor.setRegister(dest,sum);
@@ -117,7 +117,7 @@ processor.operations =  {
 		difference = sourceValue1 - sourceValue2;
 		//check for 32-bit two's complement overflow
 		if(difference>Math.pow(2,31)-1) {
-			processor.running = false;
+			system.error("Arithmetic overflow");
 		}
 		else {
 			processor.setRegister(dest,difference);
@@ -135,7 +135,7 @@ processor.operations =  {
 		sum = processor.getRegister(src) + parseInt(num);
 		//check for overflow
 		if(sum>Math.pow(2,31)-1) {
-			processor.running = false;
+			system.error("Arithmetic overflow");
 		}
 		else {
 			processor.setRegister(dest, sum);
@@ -356,7 +356,10 @@ processor.syscalls =  {
 		system.readString();
 	},
 	//syscall 10 ends the program
-	10: function() { processor.running = false;},
+	10: function() {
+		processor.running = false;
+		pause();
+	},
 	//syscall 11 prints the character in $a0
 	11: function() { 
 		system.printChar(processor.getRegister("$a0"));
@@ -364,6 +367,9 @@ processor.syscalls =  {
 };
 
 processor.runInstr = function() {
+	if(processor.programCounter>=this.text.length&&this.running) {
+		system.error("Reached end of instructions");
+	}
 
 	if(!processor.running) return;
 
@@ -373,14 +379,6 @@ processor.runInstr = function() {
 		processor.operations[instr["op"]].apply(this,instr["params"]);
 	}
 	processor.programCounter++;
-
-	console.log("pc: "+processor.programCounter);
-	console.log("text length: "+this.text.length.toString());
-	if(processor.programCounter>=this.text.length&&this.running) {
-		system.printString("ERROR: reached end of instructions.");
-		this.running = false;
-		pause();
-	}
 };
 
 processor.reset = function() {
@@ -390,6 +388,8 @@ processor.reset = function() {
 	this.setRegister("$sp",this.stackSize);
 	this.memory = new ArrayBuffer(this.memorySize);
 	this.memoryView = new DataView(this.memory);
+	this.programCounter = 0;
+	this.running = true;
 };
 
 processor.loadData = function(data) {
