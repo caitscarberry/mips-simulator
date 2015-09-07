@@ -54,6 +54,14 @@ var system = {
 		system.inputFocus = false;
 		resume(200);
 	},
+	error: function(err,lineNum) {
+		processor.running = false;
+		pause();
+		io.appendChild(document.createElement("div"));
+		system.printString("ERROR: "+err);
+		if(lineNum !== undefined) system.printString( " on line "+lineNum);
+		system.printString(".");
+	},
 	consoleKeypress: function(evt){
 		inputLine = system.inputLine;
 		if (system.inputFocus&&system.inputLine!=null) {

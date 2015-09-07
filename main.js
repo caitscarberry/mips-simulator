@@ -2,25 +2,20 @@ var runInterval;
 
 function assemble() {
 	processor.text = [];
-	program.data = [];
-	program.labels = {};
+	parser.consumed = "";
+	parser.position = 0;
 	processor.reset();
-	processor.programCounter = 0;
-	processor.running = true;
 
 	textarea = document.getElementById("code");
-	console.log(textarea);
 	programCode = "";
-	(textarea.innerHTML.length>0)? programCode = textarea.innerText : programCode = textarea.value;
-	programCode = program.stripWhiteSpace(programCode);
-	programCode = program.splitLines(program.stripComments(programCode));
-	console.log(programCode)
-	program.readCode(programCode);
-	processor.loadProgram(program);
+	programCode = (textarea.innerHTML.length>0)? textarea.innerText : textarea.value;
+	parser.readCode(programCode);
 	showInstructions();
 	addLineNumbers();
+	updateRegisters();
 	instructionsList = document.getElementById("instructions");
-	instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
+	if (instructionsList.children.length>0)
+		instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
 };
 
 function showInstructions() {
@@ -38,10 +33,9 @@ function showInstructions() {
 
 function updateRegisters () {
 	registersList = document.getElementById("registers").lastChild;
-	for(ii in registersList.childNodes) {
-		if (registersList.children[ii]&&registersList.children[ii].children!=undefined) { 
-			registersList.children[ii].children[2].innerHTML = processor.registers[ii];
-		}
+	for(ii = 0; ii < 32; ii++) {
+		console.log(processor.getRegister("$"+ii.toString()));
+		registersList.children[ii].children[2].innerHTML = processor.getRegister("$"+ii.toString());
 	}
 };
 
@@ -59,15 +53,15 @@ function runStep() {
 	if(!processor.running) return;
 	
 	instructionsList = document.getElementById("instructions");
-	instructionsList.children[processor.programCounter].style["backgroundColor"]="white";
-
+	if (instructionsList.children.length>0)
+		instructionsList.children[processor.programCounter].style["backgroundColor"]="white";
 	processor.runInstr();
+	updateRegisters();
 
 	if(!processor.running) return;
-	
-	updateRegisters();
-	
-	instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
+
+	if (instructionsList.children.length>0)
+		instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
 
 };
 
