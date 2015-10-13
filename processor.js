@@ -505,13 +505,3 @@ processor.secondSourceIntValue = function(src2) {
 	}
 	else return parseInt(src2);
 };
-
-processor.init = function() {
-	processor.registers = new DataView(new ArrayBuffer(32*8));
-	processor.dataLabels = [];
-	processor.instrLabels = [];
-	processor.programCounter = 0;
-	processor.memoryPointer = 0;
-	processor.setRegister("$sp", processor.memorySize);
-	processor.running = true;
-};
