@@ -16,6 +16,9 @@ function assemble() {
 	instructionsList = document.getElementById("instructions");
 	if (instructionsList.children.length>0)
 		instructionsList.children[processor.programCounter].style["backgroundColor"]="hsl(120,27%,90%)";
+	//jump to main, if it exists
+	if(processor.instrLabels["main"]!=undefined)
+		processor.programCounter = processor.instrLabels["main"];
 };
 
 function showInstructions() {
