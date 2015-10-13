@@ -1,4 +1,2 @@
 # mips-simulator
-A simulator for running MIPS assembly language.
-
-Function calls and the stack are currently unimplemented, along with a large amount of operations. Try some of the programs in the sample-programs folder to see what the simulator can currently do.
+A JavaScript-based simulator for running MIPS assembly language. Run the online version at [caitlin.io/mips-simulator](http://caitlin.io/mips-simulator/), or download and open index.html to run locally.
